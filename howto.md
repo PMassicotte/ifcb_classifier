@@ -6,14 +6,15 @@
   - [Setup and Installation](#setup-and-installation)
     - [1. Environment Setup](#1-environment-setup)
     - [2. Install pyifcb Dependency](#2-install-pyifcb-dependency)
-    - [3. Download Test Data](#3-download-test-data)
   - [Using the Classifier](#using-the-classifier)
-    - [1. Training a Model](#1-training-a-model)
+    - [1. Download Training data](#1-download-training-data)
+    - [2. Training a Model](#2-training-a-model)
       - [Training Notes](#training-notes)
-    - [2. Running Inference (making predictions)](#2-running-inference-making-predictions)
-      - [Single Image](#single-image)
-      - [Directory of Images](#directory-of-images)
-      - [Raw IFCB Data](#raw-ifcb-data)
+  - [Running Inference (making predictions)](#running-inference-making-predictions)
+    - [Download Test Data](#download-test-data)
+    - [Single Image](#single-image)
+    - [Directory of Images](#directory-of-images)
+    - [Raw IFCB Data](#raw-ifcb-data)
   - [Advanced Usage](#advanced-usage)
     - [GPU Acceleration](#gpu-acceleration)
     - [Hyperparameter Tuning](#hyperparameter-tuning)
@@ -60,31 +61,13 @@ cd ..
 pip install --no-deps git+https://github.com/joefutrelle/pyifcb.git
 ```
 
-### 3. Download Test Data
-
-You can download a small subset of test data using the provided R script:
-
-```bash
-Rscript download_ifcb_test_data.R
-```
-
-This will download test data to `data/data_roi/`.
-
 ## Using the Classifier
 
-### 1. Training a Model
+### 1. Download Training data
 
-Set up environment variables and parameters:
+The data used here to train the model was downloaded from [figshare](https://figshare.scilifelab.se/articles/dataset/Manually_annotated_IFCB_plankton_images_from_the_Skagerrak_Kattegat_and_Baltic_Proper_by_SMHI/25883455?file=50176155) and are from the SMHI Tangesund project (`smhi_ifcb_tangesund_annotated_images.zip`).
 
-```bash
-# Set CUDA device (if needed, ie on a computer without a CUDA-capable GPU)
-export CUDA_VISIBLE_DEVICES=0
-
-# Define training parameters
-MODEL=inception_v3       # Model architecture to use
-DATASET=data/classified/ # Path to classified data
-TRAIN_ID=MyTrainingRun   # Unique ID for this training run
-```
+Once unzipped, the data should be organized in a directory structure like this:
 
 The data in `data/classified/` should be organized as follows, i.e. each subdirectory contains images of a specific class:
 
@@ -99,6 +82,20 @@ data/classified
 ├── Cryptomonadales
 ├── Dictyocha_fibula
 ├── Dictyochales
+```
+
+### 2. Training a Model
+
+Set up environment variables and parameters:
+
+```bash
+# Set CUDA device (if needed, ie on a computer without a CUDA-capable GPU)
+export CUDA_VISIBLE_DEVICES=0
+
+# Define training parameters
+MODEL=inception_v3       # Model architecture to use
+DATASET=data/classified/ # Path to classified data
+TRAIN_ID=MyTrainingRun   # Unique ID for this training run
 ```
 
 Run the training:
@@ -122,7 +119,17 @@ python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy 
 - The model file will be saved as `training-output/$TRAIN_ID/$TRAIN_ID.ptl`
 - Use `--results` to customize validation results output (default: `results.mat`)
 
-### 2. Running Inference (making predictions)
+## Running Inference (making predictions)
+
+### Download Test Data
+
+You can download a small subset of test data using the provided R script:
+
+```bash
+Rscript download_ifcb_test_data.R
+```
+
+This will download test data to `data/data_roi/`.
 
 Define run parameters:
 
@@ -136,7 +143,7 @@ MODEL_PATH=training-output/MyTrainingRun/MyTrainingRun.ptl
 
 Run inference on:
 
-#### Single Image
+### Single Image
 
 ```bash
 python neuston_net.py RUN \
@@ -144,7 +151,7 @@ python neuston_net.py RUN \
   "$MODEL_PATH" "$RUN_ID" --type img
 ```
 
-#### Directory of Images
+### Directory of Images
 
 Here, we assume the directory contains images in PNG format:
 
@@ -167,7 +174,7 @@ python neuston_net.py RUN \
   "$MODEL_PATH" "$RUN_ID" --type img
 ```
 
-#### Raw IFCB Data
+### Raw IFCB Data
 
 `data/data_roi` should contain raw IFCB data files, organized as follows:
 
@@ -250,4 +257,4 @@ Results will be saved to `run-output/$RUN_ID/`.
 - [ ] Performance optimization for larger datasets
 - [ ] Multi-GPU training support
 - [ ] Hyperparameter optimization tools
-
+- [ ] Try to deploy on the Digital Research Alliance [DRA](https://alliancecan.ca/en) infrastructure
