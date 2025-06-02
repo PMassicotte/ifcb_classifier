@@ -223,7 +223,6 @@ Results will be saved to `run-output/$RUN_ID/`.
 
 - Training and inference benefit significantly from GPU acceleration
 - Ensure CUDA toolkit and GPU drivers are properly installed
-- Use the `--device gpu` flag to explicitly use GPU (default if available)
 
 ### Hyperparameter Tuning
 
@@ -244,7 +243,6 @@ Results will be saved to `run-output/$RUN_ID/`.
 
 - Check CUDA/PyTorch compatibility
 - Ensure your GPU has enough memory
-- Try CPU-only mode with `--device cpu`
 
 ## Future Improvements
 
@@ -252,3 +250,4 @@ Results will be saved to `run-output/$RUN_ID/`.
 - [ ] Performance optimization for larger datasets
 - [ ] Multi-GPU training support
 - [ ] Hyperparameter optimization tools
+
