@@ -146,6 +146,21 @@ python neuston_net.py RUN \
 
 #### Directory of Images
 
+Here, we assume the directory contains images in PNG format:
+
+```bash
+data/data_roi/png
+├── Alexandrium_pseudogonyaulax_050
+├── Amphidnium-like_051
+├── Chaetoceros_spp_chain_018
+├── Chaetoceros_spp_single_cell_019
+├── Ciliophora_092
+├── Cryptomonadales_011
+├── Cylindrotheca_Nitzschia_longissima_020
+├── Dactyliosolen_fragilissimus_021
+├── Dinobryon_spp_002
+```
+
 ```bash
 python neuston_net.py RUN \
   data/data_roi/png/ \
@@ -153,6 +168,46 @@ python neuston_net.py RUN \
 ```
 
 #### Raw IFCB Data
+
+`data/data_roi` should contain raw IFCB data files, organized as follows:
+
+```
+data/data_roi/data
+├── 2022
+│   ├── D20220522
+│   │   ├── D20220522T000439_IFCB134.adc
+│   │   ├── D20220522T000439_IFCB134.hdr
+│   │   ├── D20220522T000439_IFCB134.roi
+│   │   ├── D20220522T003051_IFCB134.adc
+│   │   ├── D20220522T003051_IFCB134.hdr
+│   │   └── D20220522T003051_IFCB134.roi
+│   └── D20220712
+│       ├── D20220712T210855_IFCB134.adc
+│       ├── D20220712T210855_IFCB134.hdr
+│       ├── D20220712T210855_IFCB134.roi
+│       ├── D20220712T222710_IFCB134.adc
+│       ├── D20220712T222710_IFCB134.hdr
+│       └── D20220712T222710_IFCB134.roi
+└── 2023
+    ├── D20230314
+    │   ├── D20230314T001205_IFCB134.adc
+    │   ├── D20230314T001205_IFCB134.hdr
+    │   ├── D20230314T001205_IFCB134.roi
+    │   ├── D20230314T003836_IFCB134.adc
+    │   ├── D20230314T003836_IFCB134.hdr
+    │   └── D20230314T003836_IFCB134.roi
+    ├── D20230810
+    │   ├── D20230810T113059_IFCB134.adc
+    │   ├── D20230810T113059_IFCB134.hdr
+    │   └── D20230810T113059_IFCB134.roi
+    └── D20230915
+        ├── D20230915T091133_IFCB134.adc
+        ├── D20230915T091133_IFCB134.hdr
+        ├── D20230915T091133_IFCB134.roi
+        ├── D20230915T093804_IFCB134.adc
+        ├── D20230915T093804_IFCB134.hdr
+        └── D20230915T093804_IFCB134.roi
+```
 
 ```bash
 python neuston_net.py RUN \
