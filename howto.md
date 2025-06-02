@@ -89,7 +89,7 @@ data/classified
 Set up environment variables and parameters:
 
 ```bash
-# Set CUDA device (if needed, ie on a computer without a CUDA-capable GPU)
+# Set CUDA device (change if want to use more gpus)
 export CUDA_VISIBLE_DEVICES=0
 
 # Define training parameters
