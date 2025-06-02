@@ -1,98 +1,200 @@
-# How to use the IFCB Neural Network model
+# IFCB Neural Network Classifier Guide
+
+<!--toc:start-->
+
+- [IFCB Neural Network Classifier Guide](#ifcb-neural-network-classifier-guide)
+  - [Setup and Installation](#setup-and-installation)
+    - [1. Environment Setup](#1-environment-setup)
+    - [2. Install pyifcb Dependency](#2-install-pyifcb-dependency)
+    - [3. Download Test Data](#3-download-test-data)
+  - [Using the Classifier](#using-the-classifier)
+    - [1. Training a Model](#1-training-a-model)
+      - [Training Notes](#training-notes)
+    - [2. Running Inference (making predictions)](#2-running-inference-making-predictions)
+      - [Single Image](#single-image)
+      - [Directory of Images](#directory-of-images)
+      - [Raw IFCB Data](#raw-ifcb-data)
+  - [Advanced Usage](#advanced-usage)
+    - [GPU Acceleration](#gpu-acceleration)
+    - [Hyperparameter Tuning](#hyperparameter-tuning)
+  - [Troubleshooting](#troubleshooting)
+    - [Memory Issues](#memory-issues)
+    - [CUDA Errors](#cuda-errors)
+  - [Future Improvements](#future-improvements)
+  <!--toc:end-->
+
+This guide explains how to set up and use the IFCB Neural Network classifier for plankton image classification.
+
+## Setup and Installation
+
+### 1. Environment Setup
+
+Initialize conda with your shell (if not already done):
 
 ```bash
-~/anaconda3/bin/conda init zsh
+conda init bash # or conda init zsh if using zsh
 ```
 
-## Installation
+Create and activate the conda environment:
 
 ```bash
+# Option 1: Using environment YAML (recommended)
 conda env create -f requirements/env.dev.yml
-conda activate ifcbnn # or whatever name is defined in the YAML
-```
+conda activate ifcbnn
 
-```bash
+# Option 2: Using package list
 conda create --name ifcbnn --file requirements/pkgs.dev.txt
+conda activate ifcbnn
+```
+
+### 2. Install pyifcb Dependency
+
+```bash
+# Method 1: Clone and install in development mode
 git clone https://github.com/joefutrelle/pyifcb
 cd pyifcb
 pip install -e .
-```
+cd ..
 
-If `pyifcb` is not installed due to mismatch in version number, you can install it with the following command:
-
-```bash
-git clone https://github.com/joefutrelle/pyifcb
-
+# Method 2: Direct install (if version mismatch issues occur)
 pip install --no-deps git+https://github.com/joefutrelle/pyifcb.git
-cd pyifcb
-pip install -e .
 ```
 
-## Train the model
+### 3. Download Test Data
 
-On computer without CUDA, you can run the following command before training the model:
+You can download a small subset of test data using the provided R script:
 
 ```bash
+Rscript download_ifcb_test_data.R
+```
+
+This will download test data to `data/data_roi/`.
+
+## Using the Classifier
+
+### 1. Training a Model
+
+Set up environment variables and parameters:
+
+```bash
+# Set CUDA device (if needed, ie on a computer without a CUDA-capable GPU)
 export CUDA_VISIBLE_DEVICES=0
+
+# Define training parameters
+MODEL=inception_v3       # Model architecture to use
+DATASET=data/classified/ # Path to classified data
+TRAIN_ID=MyTrainingRun   # Unique ID for this training run
 ```
+
+The data in `data/classified/` should be organized as follows, i.e. each subdirectory contains images of a specific class:
 
 ```bash
-## PARAMS ##
-MODEL=inception_v3
-DATASET=data/classified/
-TRAIN_ID=TestTrainingID
+data/classified
+├── Alexandrium_pseudogonyaulax
+├── Asterionellopsis_glacialis
+├── Blixaea_quinquecornis
+├── Cerataulina_pelagica
+├── Chaetoceros_spp
+├── Ciliophora
+├── Cryptomonadales
+├── Dictyocha_fibula
+├── Dictyochales
 ```
 
-Here I reduce the batch size to 8 it was not working on my job computer
+Run the training:
 
 ```bash
-python ./neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
+# Basic training command
+python neuston_net.py TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
+
+# With customized batch size (for lower memory systems)
+python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
+
+# Quick test run with single epoch
+python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy --emax 1
 ```
 
-Reduce the maximum number of epochs to 1 for testing purposes:
+#### Training Notes
+
+- The script automatically splits data into training (80%) and validation (20%) sets
+- Training/validation file lists are saved as `training_images.list` and `validation_images.list`
+- Results are saved to `training-output/$TRAIN_ID/`
+- The model file will be saved as `training-output/$TRAIN_ID/$TRAIN_ID.ptl`
+- Use `--results` to customize validation results output (default: `results.mat`)
+
+### 2. Running Inference (making predictions)
+
+Define run parameters:
 
 ```bash
-python ./neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy --emax 1
+# Unique ID for this inference run
+RUN_ID=MyInferenceRun
+
+# Path to trained model
+MODEL_PATH=training-output/MyTrainingRun/MyTrainingRun.ptl
 ```
 
-- There is no need to provide the training/validation split, as the script will automatically split the dataset into training and validation sets.
+Run inference on:
 
-- The default split is 80% for training and 20% for validation.
-
-- By default, the main validation results file is called results.mat, but you can customize the name and contents using the `--results` argument.
-
-- `training_images.list` (list of training image paths)
-
-- `validation_images.list` (list of validation image paths)
-
-## Run the model to predict on images
-
-We have to specify the training ID and the model file to use for prediction. `RUN_ID` is the ID of the run, will create a directory with this name in the `training-output` directory (`default="run-output/{RUN_ID}/v3/{MODEL_ID}"
-`).
+#### Single Image
 
 ```bash
-RUN_ID=TestRunID
-python3 neuston_net.py RUN data/data_roi/png/Alexandrium_pseudogonyaulax_050/D20220712T210855_IFCB134_00042.png training-output/TestTrainingID/TestTrainingID.ptl "$TestRunID" --type img
+python neuston_net.py RUN \
+  data/data_roi/png/Alexandrium_pseudogonyaulax_050/D20220712T210855_IFCB134_00042.png \
+  "$MODEL_PATH" "$RUN_ID" --type img
 ```
 
-For a directory of images, you can run the following command:
+#### Directory of Images
 
 ```bash
-RUN_ID=TestRunID
-python3 neuston_net.py RUN data/data_roi/png/ training-output/TestTrainingID/TestTrainingID.ptl "$TestRunID" --type img
+python neuston_net.py RUN \
+  data/data_roi/png/ \
+  "$MODEL_PATH" "$RUN_ID" --type img
 ```
 
-### Test on raw IFCB data
-
-The test data used in this example is a small subset of raw IFCB data, which can be found in the `data/data_roi` directory. The data have been downloaded using the R script `download_ifcb_test_data.R` from this repository.
+#### Raw IFCB Data
 
 ```bash
-python3 neuston_net.py RUN data/data_roi/data training-output/ExampleTrainingID/ExampleTrainingID.ptl ddd
+python neuston_net.py RUN \
+  data/data_roi/data \
+  "$MODEL_PATH" "$RUN_ID"
 ```
 
-## TODOs
+Results will be saved to `run-output/$RUN_ID/`.
 
-- [ ] Add more documentation on how to use the model.
-- [ ] Train the model on a larger dataset with more epochs.
-- [ ] Use CUDA to speed up the training process.
-- [ ] uv?
+## Advanced Usage
+
+### GPU Acceleration
+
+- Training and inference benefit significantly from GPU acceleration
+- Ensure CUDA toolkit and GPU drivers are properly installed
+- Use the `--device gpu` flag to explicitly use GPU (default if available)
+
+### Hyperparameter Tuning
+
+- Adjust batch size with `--batch` (default: 32)
+- Set maximum epochs with `--emax` (default: 100)
+- Control learning rate with `--lr` (default: 0.001)
+- Manage validation frequency with `--valfreq` (default: 0.1)
+
+## Troubleshooting
+
+### Memory Issues
+
+- Reduce batch size with `--batch 4` or `--batch 8`
+- Use smaller image dimensions with `--imgdim 224`
+- Try a smaller model architecture like `resnet18`
+
+### CUDA Errors
+
+- Check CUDA/PyTorch compatibility
+- Ensure your GPU has enough memory
+- Try CPU-only mode with `--device cpu`
+
+## Future Improvements
+
+- [ ] Documentation expansion with specific usage examples
+- [ ] Performance optimization for larger datasets
+- [ ] Multi-GPU training support
+- [ ] Hyperparameter optimization tools
+
