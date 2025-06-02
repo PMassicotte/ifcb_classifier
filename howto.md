@@ -243,8 +243,6 @@ Results will be saved to `run-output/$RUN_ID/`.
 ### Memory Issues
 
 - Reduce batch size with `--batch 4` or `--batch 8`
-- Use smaller image dimensions with `--imgdim 224`
-- Try a smaller model architecture like `resnet18`
 
 ### CUDA Errors
 
@@ -257,4 +255,4 @@ Results will be saved to `run-output/$RUN_ID/`.
 - [ ] Performance optimization for larger datasets
 - [ ] Multi-GPU training support
 - [ ] Hyperparameter optimization tools
-- [ ] Try to deploy on the Digital Research Alliance [DRA](https://alliancecan.ca/en) infrastructure
+- [ ] Try to deploy on the [Digital Research Alliance](https://alliancecan.ca/en) infrastructure
