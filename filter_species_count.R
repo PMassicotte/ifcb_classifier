@@ -18,19 +18,17 @@ training_dir <- fs::path("training-data")
 fs::dir_ls(training_dir, recurse = TRUE) |>
   fs::file_delete()
 
-file_counts_df |>
+file_structure <- file_counts_df |>
   filter(file_count >= 100L) |>
-  pull(directory) |>
-  future_walk(
-    dir_copy,
-    new_path = training_dir,
-    overwrite = TRUE,
-    .progress = TRUE
+  mutate(
+    rel_path = fs::path_file(directory),
+    target_dir = fs::path(training_dir, rel_path)
   )
+
+dir_copy(file_structure[["directory"]], file_structure[["target_dir"]])
 
 fs::dir_ls(training_dir, recurse = TRUE, glob = "*.tsv") |>
   fs::file_delete()
-
 
 fs::dir_ls(training_dir, recurse = TRUE) |>
   length()
