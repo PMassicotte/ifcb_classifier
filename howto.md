@@ -69,10 +69,10 @@ The data used here to train the model was downloaded from [figshare](https://fig
 
 Once unzipped, the data should be organized in a directory structure like this:
 
-The data in `data/classified/` should be organized as follows, i.e. each subdirectory contains images of a specific class:
+The data in `training-data` should be organized as follows, i.e. each subdirectory contains images of a specific class:
 
 ```bash
-data/classified
+training-data
 ├── Alexandrium_pseudogonyaulax
 ├── Asterionellopsis_glacialis
 ├── Blixaea_quinquecornis
@@ -84,6 +84,8 @@ data/classified
 ├── Dictyochales
 ```
 
+Charlotte also provided some classified phytoplankton images.
+
 ### 2. Training a Model
 
 Set up environment variables and parameters:
@@ -93,9 +95,9 @@ Set up environment variables and parameters:
 export CUDA_VISIBLE_DEVICES=0
 
 # Define training parameters
-MODEL=inception_v3       # Model architecture to use
-DATASET=data/classified/ # Path to classified data
-TRAIN_ID=MyTrainingRun   # Unique ID for this training run
+MODEL=inception_v3     # Model architecture to use
+DATASET=training-data/ # Path to classified data
+TRAIN_ID=MyTrainingRun # Unique ID for this training run
 ```
 
 Run the training:
@@ -109,6 +111,20 @@ python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
 
 # Quick test run with single epoch
 python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy --emax 1
+```
+
+On my system, the training command can looks like this (using CUDA device 0):
+
+```bash
+export CUDA_VISIBLE_DEVICES=0
+
+# Define training parameters
+MODEL=inception_v3
+DATASET=training-data/
+TRAIN_ID=inception_v3_smhi_tangesund_b32_flipxy
+
+# Change the batch size if you have a higher/lower memory system
+python neuston_net.py --batch 32 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
 ```
 
 #### Training Notes
@@ -251,8 +267,27 @@ Results will be saved to `run-output/$RUN_ID/`.
 
 ## Future Improvements
 
+- [ ] Filter species without enough observations (~50?, ~100?)
 - [ ] Documentation expansion with specific usage examples
 - [ ] Performance optimization for larger datasets
 - [ ] Multi-GPU training support
 - [ ] Hyperparameter optimization tools
 - [ ] Try to deploy on the [Digital Research Alliance](https://alliancecan.ca/en) infrastructure
+- [ ] R code to format the results for the training and inference steps. Maybe use a database to store the results?
+
+## Extra data
+
+[Tara Oceans Polar Circle](https://misclab.umeoce.maine.edu/ftp/experiments/Tara/TaraArctic/TaraOceansPolarCircle_allData/)
+
+## Data Requirements
+
+For CNN training, you generally need at least 50-100 images per class for basic
+training. Classes with very few samples (like those with under 30 images) might lead to
+poor performance or overfitting. Consider:
+
+- Keep classes with 100+ images
+- Consider merging related classes with few samples
+- For classes with 30-100 images, use data augmentation techniques
+- Remove classes with fewer than 10-15 images
+
+Classes with just 1-5 samples are likely insufficient even with augmentation.
