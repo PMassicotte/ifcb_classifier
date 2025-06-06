@@ -11,8 +11,9 @@ DATASET="training-data/"
 TRAIN_ID="inception_v3_smhi_tangesund_b32_flipxy"
 BATCH_SIZE=32
 # This is used to randomly flip images horizontally and vertically, this can
-# help the model generalize better
+# help the model to generalize better
 EXTRA_ARGS="--flip xy+V"
+# FNAME="results.json"
 
 # === Functions ===
 
