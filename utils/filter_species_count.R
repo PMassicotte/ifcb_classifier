@@ -13,10 +13,12 @@ dirs <- list.dirs(path = data_raw_path, recursive = FALSE)
 file_counts <- vapply(dirs, function(d) length(list.files(d)), integer(1L))
 file_counts_df <- tibble(directory = dirs, file_count = file_counts)
 
-training_dir <- fs::path("training-data")
+training_dir <- fs::path("training-data", "smhi")
 
-fs::dir_ls(training_dir, recurse = TRUE) |>
-  fs::file_delete()
+if (dir_exists(training_dir)) {
+  fs::dir_ls(training_dir, recurse = TRUE) |>
+    fs::file_delete()
+}
 
 file_structure <- file_counts_df |>
   filter(file_count >= 100L) |>
