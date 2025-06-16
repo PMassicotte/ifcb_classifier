@@ -7,8 +7,8 @@ CONDA_ENV="ifcbnn"
 CONDA_SH="${HOME}/miniconda3/etc/profile.d/conda.sh"
 CUDA_DEVICES="0"
 MODEL="inception_v3"
-DATASET="training-data/smhi/"
-TRAIN_ID="inception_v3_smhi_tangesund_b32_flipxy"
+DATASET="training-data/"
+TRAIN_ID="inception_v3_full_model_b32_flipxy"
 BATCH_SIZE=32
 # This is used to randomly flip images horizontally and vertically, this can
 # help the model to generalize better
