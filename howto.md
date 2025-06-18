@@ -11,11 +11,13 @@
     - [2. Training a Model](#2-training-a-model)
       - [Training Notes](#training-notes)
   - [Running Inference (making predictions)](#running-inference-making-predictions)
-    - [Download Test Data](#download-test-data)
-    - [Single Image](#single-image)
-    - [Directory of Images](#directory-of-images)
-    - [Raw IFCB Data](#raw-ifcb-data)
+    - [Input Data Organization](#input-data-organization)
+      - [For Images](#for-images)
+      - [For Raw IFCB Data](#for-raw-ifcb-data)
   - [Advanced Usage](#advanced-usage)
+    - [Command-Line Options](#command-line-options)
+      - [Training Script Options](#training-script-options)
+      - [Inference Script Options](#inference-script-options)
     - [GPU Acceleration](#gpu-acceleration)
     - [Hyperparameter Tuning](#hyperparameter-tuning)
   - [Troubleshooting](#troubleshooting)
@@ -113,187 +115,145 @@ Charlotte also provided some classified phytoplankton images.
 
 ### 2. Training a Model
 
-Set up environment variables and parameters:
+The project includes a convenient shell script for training models that handles conda environment activation, CUDA device configuration, and other common settings.
 
 ```bash
-# Set CUDA device (change if want to use more gpus)
-export CUDA_VISIBLE_DEVICES=0
+# Basic usage (requires specifying a training ID)
+./train_cnn_model.sh -t inception_v3_my_model_id
 
-# Define training parameters
-MODEL=inception_v3     # Model architecture to use
-DATASET=training-data/ # Path to classified data
-TRAIN_ID=MyTrainingRun # Unique ID for this training run
+# Show help and available options
+./train_cnn_model.sh -h
 ```
 
-Run the training:
+The training script requires a training ID parameter, which identifies your training run and names the output model files. Choose a descriptive name that includes the model architecture and important training parameters.
 
-```bash
-# Basic training command
-python neuston_net.py TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
+Example training ID: `inception_v3_smhi_tangesund_b32_flipxy`
 
-# With customized batch size (for lower memory systems)
-python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
+The script uses the following default settings:
 
-# Quick test run with single epoch
-python neuston_net.py --batch 8 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy --emax 1
-```
+- Model architecture: inception_v3
+- Dataset location: training-data/
+- Batch size: 32
+- Data augmentation: Random flips (horizontal, vertical)
+- Image normalization: Pre-calculated values for the dataset
 
-On my system, the training command can looks like this (using CUDA device 0):
-
-```bash
-export CUDA_VISIBLE_DEVICES=0
-
-# Define training parameters
-MODEL=inception_v3
-DATASET=training-data/
-TRAIN_ID=inception_v3_smhi_tangesund_b32_flipxy
-
-# Change the batch size if you have a higher/lower memory system
-python neuston_net.py --batch 32 TRAIN "$DATASET" "$MODEL" "$TRAIN_ID" --flip xy
-```
+Training results are saved to `training-output/your_training_id/`.
 
 #### Training Notes
 
 - The script automatically splits data into training (80%) and validation (20%) sets
 - Training/validation file lists are saved as `training_images.list` and `validation_images.list`
-- Results are saved to `training-output/$TRAIN_ID/`
-- The model file will be saved as `training-output/$TRAIN_ID/$TRAIN_ID.ptl`
-- Use `--results` to customize validation results output (default: `results.mat`)
+- The model file is saved as `training-output/$TRAIN_ID/$TRAIN_ID.ptl`
 
-Images can be normalized:
-
-```bash
-python neuston_net.py TRAIN [SRC] [MODEL] [TRAIN_ID] --img-norm "0.6231432, 0.20911531"
-```
-
-Values were calculated from the training data using the following:
-
-```bash
-python3 neuston_util.py CALC_IMG_NORM training-data/
-```
-
-Not needed when doing inference, as the model will handle normalization automatically.
-
-> This includes the original normalization parameters, which are then used automatically to preprocess inference images. You can see this in action when the model creates the dataset for inference (line 311-312) where it passes along the classifier.hparams.img_norm values. So the answer is: No, you don't need to re-specify the normalization parameters during inference - the values are automatically used from your trained model.
+Image normalization values are pre-configured in the script (0.6231432, 0.20911531). These were calculated from the training data and are automatically applied during both training and inference.
 
 ## Running Inference (making predictions)
 
-### Download Test Data
-
-You can download a small subset of test data using the provided R script:
+The project includes a shell script for running inference with trained models:
 
 ```bash
-Rscript download_ifcb_test_data.R
+# Basic usage
+./run_cnn_model.sh -i INPUT_DATA_DIR -m MODEL_NAME [-t TYPE]
+
+# Show help and available options
+./run_cnn_model.sh -h
 ```
 
-This will download test data to `data/data_roi/`.
+Required parameters:
 
-Define run parameters:
+- `-i INPUT_DATA_DIR`: Directory containing input data to classify
+- `-m MODEL_NAME`: Name of the trained model (e.g., 'inception_v3_smhi_tangesund_b32_flipxy')
+- `-t TYPE`: Optional input type (e.g., 'img' for image input)
+
+Example usage:
 
 ```bash
-# Unique ID for this inference run
-RUN_ID=MyInferenceRun
+# Run inference on a directory of raw IFCB data
+./run_cnn_model.sh -i run-data/sosik_2006/ -m inception_v3_smhi_tangesund_b32_flipxy
 
-# Path to trained model
-MODEL_PATH=training-output/MyTrainingRun/MyTrainingRun.ptl
+# Run inference on a directory of images
+./run_cnn_model.sh -i run-data/png_images/ -m inception_v3_smhi_tangesund_b32_flipxy -t img
 ```
 
-Run inference on:
+The script will:
 
-### Single Image
+1. Check if the specified model exists
+2. Create a unique run ID based on the model name and input data
+3. Activate the conda environment
+4. Run inference on the input data
+5. Save results to `run-output/$RUN_ID/`
 
-```bash
-python neuston_net.py RUN \
-  data/data_roi/png/Alexandrium_pseudogonyaulax_050/D20220712T210855_IFCB134_00042.png \
-  "$MODEL_PATH" "$RUN_ID" --type img
-```
+### Input Data Organization
 
-### Directory of Images
+#### For Images
 
-Here, we assume the directory contains images in PNG format:
-
-```bash
-data/data_roi/png
-├── Alexandrium_pseudogonyaulax_050
-├── Amphidnium-like_051
-├── Chaetoceros_spp_chain_018
-├── Chaetoceros_spp_single_cell_019
-├── Ciliophora_092
-├── Cryptomonadales_011
-├── Cylindrotheca_Nitzschia_longissima_020
-├── Dactyliosolen_fragilissimus_021
-├── Dinobryon_spp_002
-```
-
-```bash
-python neuston_net.py RUN \
-  data/data_roi/png/ \
-  "$MODEL_PATH" "$RUN_ID" --type img
-```
-
-### Raw IFCB Data
-
-`data/data_roi` should contain raw IFCB data files, organized as follows:
+Input directory should contain PNG images, either directly or organized in subdirectories by class:
 
 ```
-data/data_roi/data
-├── 2022
-│   ├── D20220522
-│   │   ├── D20220522T000439_IFCB134.adc
-│   │   ├── D20220522T000439_IFCB134.hdr
-│   │   ├── D20220522T000439_IFCB134.roi
-│   │   ├── D20220522T003051_IFCB134.adc
-│   │   ├── D20220522T003051_IFCB134.hdr
-│   │   └── D20220522T003051_IFCB134.roi
-│   └── D20220712
-│       ├── D20220712T210855_IFCB134.adc
-│       ├── D20220712T210855_IFCB134.hdr
-│       ├── D20220712T210855_IFCB134.roi
-│       ├── D20220712T222710_IFCB134.adc
-│       ├── D20220712T222710_IFCB134.hdr
-│       └── D20220712T222710_IFCB134.roi
-└── 2023
-    ├── D20230314
-    │   ├── D20230314T001205_IFCB134.adc
-    │   ├── D20230314T001205_IFCB134.hdr
-    │   ├── D20230314T001205_IFCB134.roi
-    │   ├── D20230314T003836_IFCB134.adc
-    │   ├── D20230314T003836_IFCB134.hdr
-    │   └── D20230314T003836_IFCB134.roi
-    ├── D20230810
-    │   ├── D20230810T113059_IFCB134.adc
-    │   ├── D20230810T113059_IFCB134.hdr
-    │   └── D20230810T113059_IFCB134.roi
-    └── D20230915
-        ├── D20230915T091133_IFCB134.adc
-        ├── D20230915T091133_IFCB134.hdr
-        ├── D20230915T091133_IFCB134.roi
-        ├── D20230915T093804_IFCB134.adc
-        ├── D20230915T093804_IFCB134.hdr
-        └── D20230915T093804_IFCB134.roi
+input_directory/
+├── class1/
+│   ├── image1.png
+│   ├── image2.png
+├── class2/
+│   ├── image3.png
+...
 ```
 
-```bash
-python neuston_net.py RUN \
-  data/data_roi/data \
-  "$MODEL_PATH" "$RUN_ID"
-```
+#### For Raw IFCB Data
 
-Results will be saved to `run-output/$RUN_ID/`.
+Input directory should contain .adc, .hdr, and .roi files, typically organized by date:
+
+```
+input_directory/
+├── D20220522/
+│   ├── D20220522T000439_IFCB134.adc
+│   ├── D20220522T000439_IFCB134.hdr
+│   ├── D20220522T000439_IFCB134.roi
+...
+```
 
 ## Advanced Usage
+
+### Command-Line Options
+
+#### Training Script Options
+
+The `train_cnn_model.sh` script supports the following options:
+
+```bash
+Usage: ./train_cnn_model.sh [OPTIONS]
+Options:
+  -t, --train-id ID    Training ID (required)
+  -h, --help           Show this help message
+```
+
+#### Inference Script Options
+
+The `run_cnn_model.sh` script supports the following options:
+
+```bash
+Usage: ./run_cnn_model.sh -i INPUT_DATA_DIR -m MODEL_NAME [-t TYPE]
+Options:
+  -i INPUT_DATA_DIR  Directory containing input data (required)
+  -m MODEL_NAME      Model name (required, e.g. 'inception_v3_smhi_tangesund_b32_flipxy')
+  -t TYPE            Input type (e.g., 'img' for image input)
+  -h                 Show this help message
+```
 
 ### GPU Acceleration
 
 - Training and inference benefit significantly from GPU acceleration
 - Ensure CUDA toolkit and GPU drivers are properly installed
+- The scripts automatically configure CUDA to use device 0 by default
 
 ### Hyperparameter Tuning
 
-- Adjust batch size with `--batch` (default: 32)
-- Set maximum epochs with `--emax` (default: 100)
-- Control learning rate with `--lr` (default: 0.001)
-- Manage validation frequency with `--valfreq` (default: 0.1)
+You can modify the scripts to adjust various hyperparameters:
+
+- Batch size: Modify the `BATCH_SIZE` variable in the scripts (default: 32)
+- Maximum epochs: Add `--emax VALUE` to the `EXTRA_ARGS` variable (default: 100)
+- Learning rate: Add `--lr VALUE` to the `EXTRA_ARGS` variable (default: 0.001)
+- Validation frequency: Add `--valfreq VALUE` to the `EXTRA_ARGS` variable (default: 0.1)
 
 ## Troubleshooting
 
