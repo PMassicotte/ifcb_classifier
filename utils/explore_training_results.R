@@ -1,12 +1,7 @@
 library(tidyverse)
 library(R.matlab)
 
-file <- fs::path(
-  "training-output",
-  "inception_v3_smhi_tangesund_b32_flipxy",
-  "results.mat"
-)
-
+file <- fs::path("training-output", "inception_v3_2025_06_18", "results.mat")
 res <- R.matlab::readMat(file)
 
 str(res)
@@ -40,11 +35,10 @@ ggplot(df_conf, aes(x = Predicted, y = true, fill = Count)) +
     axis.text.x = element_text(angle = 90L)
   )
 
-
 f1_perclass <- as.numeric(res$f1.perclass)
 class_labels <- unlist(res$class.labels)
 
-f1_df <- data.frame(Class = class_labels, F1 = f1_perclass)
+f1_df <- tibble(Class = class_labels, F1 = f1_perclass)
 
 ggplot(f1_df, aes(x = reorder(Class, -F1), y = F1)) +
   geom_bar(stat = "identity", fill = "forestgreen") +
@@ -54,7 +48,6 @@ ggplot(f1_df, aes(x = reorder(Class, -F1), y = F1)) +
   theme_minimal()
 
 # Accuracy
-
 true_classes <- as.integer(res$input.classes)
 pred_classes <- as.integer(res$output.classes)
 

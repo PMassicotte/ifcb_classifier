@@ -2,7 +2,7 @@ library(tidyverse)
 library(rhdf5)
 library(fs)
 
-id_from_bin_file <- function(file) {
+id_from_bin_file <- function(file, roi_number) {
   paste0(
     str_match(file, "(D\\w+_\\w+)_class\\.h5$")[, 2L],
     "_",
@@ -30,7 +30,7 @@ extract_h5_classification <- function(h5_file_path) {
   roi_number <- h5read(h5_file_path, "roi_numbers")
 
   tibble::tibble(
-    id = id_from_bin_file(h5_file_path),
+    id = id_from_bin_file(h5_file_path, roi_number),
     bin_file = h5_file_path,
     image = seq_along(output_classes),
     roi_number = as.vector(roi_number),
@@ -43,9 +43,9 @@ extract_h5_classification <- function(h5_file_path) {
 # Example usage
 file_path <- fs::path(
   "run-output",
-  "inception_v3_smhi_tangesund_b32_flipxy",
+  "inception_v3_full_model_smhi_tangesund_b32_flipxy",
   "v3",
-  "inception_v3_smhi_tangesund_b32_flipxy",
+  "inception_v3_full_model_b32_flipxy",
   "D2022",
   "D20220819",
   "D20220819T055747_IFCB145_class.h5"
@@ -71,7 +71,7 @@ res <- read_csv(url) |>
   select(-bin_file)
 
 res |>
-  count(class_label)
+  count(class_label, sort = TRUE)
 
 res |>
   write_csv("~/Desktop/classification_scores.csv")

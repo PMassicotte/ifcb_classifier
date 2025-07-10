@@ -15,9 +15,6 @@
       - [For Images](#for-images)
       - [For Raw IFCB Data](#for-raw-ifcb-data)
   - [Advanced Usage](#advanced-usage)
-    - [Command-Line Options](#command-line-options)
-      - [Training Script Options](#training-script-options)
-      - [Inference Script Options](#inference-script-options)
     - [GPU Acceleration](#gpu-acceleration)
     - [Hyperparameter Tuning](#hyperparameter-tuning)
   - [Troubleshooting](#troubleshooting)
@@ -169,10 +166,10 @@ Example usage:
 
 ```bash
 # Run inference on a directory of raw IFCB data
-./run_cnn_model.sh -i run-data/sosik_2006/ -m inception_v3_smhi_tangesund_b32_flipxy
+./run_cnn_model.sh -i run-data/sosik_2006/ -m inception_v3_my_model_id
 
 # Run inference on a directory of images
-./run_cnn_model.sh -i run-data/png_images/ -m inception_v3_smhi_tangesund_b32_flipxy -t img
+./run_cnn_model.sh -i run-data/png_images/ -m inception_v3_my_model_id -t img
 ```
 
 The script will:
@@ -213,32 +210,6 @@ input_directory/
 ```
 
 ## Advanced Usage
-
-### Command-Line Options
-
-#### Training Script Options
-
-The `train_cnn_model.sh` script supports the following options:
-
-```bash
-Usage: ./train_cnn_model.sh [OPTIONS]
-Options:
-  -t, --train-id ID    Training ID (required)
-  -h, --help           Show this help message
-```
-
-#### Inference Script Options
-
-The `run_cnn_model.sh` script supports the following options:
-
-```bash
-Usage: ./run_cnn_model.sh -i INPUT_DATA_DIR -m MODEL_NAME [-t TYPE]
-Options:
-  -i INPUT_DATA_DIR  Directory containing input data (required)
-  -m MODEL_NAME      Model name (required, e.g. 'inception_v3_smhi_tangesund_b32_flipxy')
-  -t TYPE            Input type (e.g., 'img' for image input)
-  -h                 Show this help message
-```
 
 ### GPU Acceleration
 
@@ -288,7 +259,6 @@ Based on my understanding, the "autoclass" link found in the dashboard works as 
 
 1. The classification uses a CNN model (found in the IFCB-CNN directory), likely based on architectures like `ResNet50/152`, `InceptionV3`, or `VGG16`.
 2. Classification results are stored in the AutoclassScore model (in `ifcb_datasets/models.py`) which links to:
-
    - The phytoplankton image (via pid)
    - The confidence score
    - Species classification
