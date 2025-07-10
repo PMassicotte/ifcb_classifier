@@ -564,9 +564,18 @@ class IfcbBinDataset(Dataset):
             bin_images = bin.images
 
         for target_number, img in bin_images.items():
-            target_pid = bin.pid.with_target(target_number)
-            self.images.append(img)
-            self.pids.append(target_pid)
+            try:
+                target_pid = bin.pid.with_target(target_number)
+                self.images.append(img)
+                self.pids.append(target_pid)
+            except ValueError as e:
+                if "cannot reshape array" in str(e):
+                    print(
+                        f"Warning: Skipping corrupted image {target_number} in bin {bin.pid}: {e}"
+                    )
+                    continue
+                else:
+                    raise
 
     def __getitem__(self, item):
         img = self.images[item]
