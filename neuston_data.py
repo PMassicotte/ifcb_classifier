@@ -1,20 +1,19 @@
 """this module handles the parsing of data directories"""
 
 # built in imports
-import os, sys
+import os
 import random
-
-# 3rd party imports
-from torchvision import transforms, datasets
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch import Tensor
-import pandas as pd
 
 # project imports
 import ifcb
+import pandas as pd
 from ifcb.data.adc import SCHEMA_VERSION_1
 from ifcb.data.stitching import InfilledImages
+from torch import Tensor
+from torch.utils.data.dataset import Dataset, IterableDataset
 
+# 3rd party imports
+from torchvision import datasets, transforms
 
 ## TRAINING ##
 
@@ -563,8 +562,9 @@ class IfcbBinDataset(Dataset):
         else:
             bin_images = bin.images
 
-        for target_number, img in bin_images.items():
+        for target_number in bin_images:
             try:
+                img = bin_images[target_number]
                 target_pid = bin.pid.with_target(target_number)
                 self.images.append(img)
                 self.pids.append(target_pid)
