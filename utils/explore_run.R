@@ -1,10 +1,13 @@
 library(tidyverse)
 library(rhdf5)
 library(fs)
+library(furrr)
+
+plan(multisession(workers = availableCores() - 2L))
 
 id_from_bin_file <- function(file, roi_number) {
   paste0(
-    str_match(file, "(D\\w+_\\w+)_class\\.h5$")[, 2L],
+    str_match(file, "(D\\w+_\\w+)_class\\.h5$")[, 2L], #nolint
     "_",
     str_pad(roi_number, pad = "0", side = "left", width = 5L)
   )
@@ -29,49 +32,47 @@ extract_h5_classification <- function(h5_file_path) {
   # TODO: Add + 1? After exploring on the dashboard, it seems ok like this
   roi_number <- h5read(h5_file_path, "roi_numbers")
 
+  n_classes <- nrow(output_scores)
+  n_images <- length(output_classes)
+
   tibble::tibble(
-    id = id_from_bin_file(h5_file_path, roi_number),
-    bin_file = h5_file_path,
-    image = seq_along(output_classes),
-    roi_number = as.vector(roi_number),
-    class_index = as.vector(output_classes),
-    class_label = as.vector(class_labels[output_classes]),
-    score = max_scores
+    id = rep(id_from_bin_file(h5_file_path, roi_number), each = n_classes),
+    bin_file = rep(h5_file_path, n_images * n_classes),
+    image = rep(seq_along(output_classes), each = n_classes),
+    roi_number = rep(as.vector(roi_number), each = n_classes),
+    class_index = rep(1L:n_classes, n_images),
+    class_label = rep(class_labels, n_images),
+    score = as.vector(output_scores)
   )
 }
 
-# Example usage
-file_path <- fs::path(
-  "run-output",
-  "inception_v3_full_model_smhi_tangesund_b32_flipxy",
-  "v3",
-  "inception_v3_full_model_b32_flipxy",
-  "D2022",
-  "D20220819",
-  "D20220819T055747_IFCB145_class.h5"
+
+process_and_save_h5 <- function(h5_file_path) {
+  results <- extract_h5_classification(h5_file_path)
+
+  csv_filename <- fs::path(
+    results_dir,
+    str_replace(path_file(h5_file_path), "\\.h5$", ".csv")
+  )
+
+  write_csv(results, csv_filename)
+
+  cli::cli_inform("Processed and saved: {csv_filename}")
+}
+
+run_name <- "inception_v3_2025_07_09_with_img_norm_tara_ifcb_leg_01_lorient_tromso"
+
+# Create results directory
+results_dir <- fs::path("results", run_name)
+dir_create(results_dir)
+
+files <- dir_ls(
+  fs::path("run-output", run_name),
+  recurse = TRUE,
+  glob = "*.h5"
 )
 
-results <- extract_h5_classification(file_path)
+length(files)
 
-results |>
-  count(class_label, sort = TRUE)
-
-url <- paste0(
-  "https://",
-  "habon-ifcb.whoi.edu/",
-  "arctic/",
-  "D20220819T055747_IFCB145_class_scores.csv"
-)
-
-res <- read_csv(url) |>
-  pivot_longer(-pid, names_to = "species", values_to = "score") |>
-  filter(score == max(score), .by = pid) |>
-  rename_with(.fn = ~ paste0(.x, "_autoclass"), everything()) |>
-  full_join(results, by = join_by("pid_autoclass" == "id")) |>
-  select(-bin_file)
-
-res |>
-  count(class_label, sort = TRUE)
-
-res |>
-  write_csv("~/Desktop/classification_scores.csv")
+# Process all files
+future_walk(files, process_and_save_h5, .progress = TRUE)
