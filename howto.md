@@ -278,3 +278,17 @@ The classification pipeline ingests IFCB images, processes them through the CNN 
 - Try to deploy on the [Digital Research Alliance](https://alliancecan.ca/en) infrastructure
 - R code to format the results for the training and inference steps. Maybe use a database to store the results?
   - The results of the predictions should be pivoted wider. The first column should be the ID with the ROI, e.g. `D20220819T055747_IFCB145_001` with `D20220819T055747_IFCB145` the id and the `001` the roi number. All other columns should be the species with the confidence score as the value.
+
+## Reproducibility
+
+First, the model was trained as follows:
+
+```bash
+./train_cnn_model.sh -t inception_v3_2025_07_09_with_img_norm
+```
+
+Then, the model was used to classify the images of the Tara missions in the `run-data` directory:
+
+```bash
+./run_cnn_model.sh -i run-data/tara_ifcb_leg_01_lorient_tromso/ -m inception_v3_2025_07_09_with_img_norm
+```
