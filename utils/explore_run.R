@@ -18,7 +18,7 @@ extract_h5_classification <- function(h5_file_path) {
     cli::cli_abort("File does not exist: ", h5_file_path)
   }
 
-  h5ls(h5_file_path)
+  # h5ls(h5_file_path)
 
   class_labels <- h5read(h5_file_path, "class_labels")
 
@@ -46,7 +46,6 @@ extract_h5_classification <- function(h5_file_path) {
   )
 }
 
-
 process_and_save_h5 <- function(h5_file_path) {
   results <- extract_h5_classification(h5_file_path)
 
@@ -56,8 +55,6 @@ process_and_save_h5 <- function(h5_file_path) {
   )
 
   write_csv(results, csv_filename)
-
-  cli::cli_inform("Processed and saved: {csv_filename}")
 }
 
 run_name <- "inception_v3_2025_07_09_with_img_norm_tara_ifcb_leg_01_lorient_tromso"
@@ -71,8 +68,6 @@ files <- dir_ls(
   recurse = TRUE,
   glob = "*.h5"
 )
-
-length(files)
 
 # Process all files
 future_walk(files, process_and_save_h5, .progress = TRUE)
