@@ -3,7 +3,7 @@ SELECT
   *
 FROM
   read_json_auto(
-    'run-output/inception_v3_2025_07_21_img_norm_no_bad_foccus_02_Greenedge_Cruise_2016/v3/inception_v3_2025_07_21_img_norm_no_bad_foccus/img_results.json',
+    'run-output/inception_v3_2025_07_21_img_norm_no_bad_foccus_02_Greenedge_Cruise_2016_no_scale_bar/v3/inception_v3_2025_07_21_img_norm_no_bad_foccus/img_results.json',
     maximum_object_size = 1000000000
   );
 
@@ -77,4 +77,4 @@ COPY (
   ORDER BY
     image_idx,
     class_idx
-) TO 'results/flattened_results_greenedge_2016.csv' (HEADER, DELIMITER ',');
+) TO 'results/flattened_results_greenedge_no_bar_no_bad_foccus.csv' (HEADER, DELIMITER ',');
